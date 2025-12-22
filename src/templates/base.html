@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}base.html{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+<body>
+    <header>
+        <h1>데이터베이스 디자인 프로젝트 4조</h1>
+        <nav>
+            <ul class="main-nav">
+                <li><a href="{{ url_for('main.index') }}">홈</a></li>
+                <li><a href="{{ url_for('search_em.search') }}">직원 검색</a></li>
+                <li><a href="{{ url_for('sign.employee') }}">회원가입</a></li>
+                <!--<li><a href="{{ url_for('salary.employee') }}">직원 월급 검색</a></li>-->
+            </ul>
+            <ul class="sub-nav">
+                <li>여기서부터는 test 목록입니다.</li>
+                <li><a href="{{ url_for('test.department') }}">부서 목록</a></li>
+                <li><a href="{{ url_for('test.employee') }}">직원 목록</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul id="flash-messages">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>회사 운영 database</p>
+        <p>© 2024  웹사이트</p>
+    </footer>
+</body>
+</html>

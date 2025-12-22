@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}부서 목록{% endblock %}
+
+{% block content %}
+    <div class="department_list" id="section">
+    <h2>부서 목록</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>부서 ID</th>
+                <th>부서 이름</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for department in departments %}
+                <tr>
+                    <td>{{ department[0] }}</td>
+                    <td>{{ department[1] }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

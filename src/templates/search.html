@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}직원 검색{% endblock %}
+
+{% block content %}
+    <div class="search-employee" id="section">
+        <h3>직원 검색</h3>
+        <form method="POST">
+            <label for="search_name">이름으로 검색:</label>
+            <input type="text" id="search_name" name="search_name">
+            <label for="search_department">부서 이름으로 검색:</label>
+            <input type="text" id="search_department" name="search_department">
+            <label for="search_position">현재 참여하고 있는 프로젝트의 직급으로 검색:</label>
+            <input type="text" id="search_position" name="search_position">
+            <label for="search_phone">전화번호로 검색:</label>
+            <input type="text" id="search_phone" name="search_phone">
+            <label for="search_email">이메일로 검색:</label>
+            <input type="text" id="search_email" name="search_email">
+            <br><br>
+            <input type="submit" name="search_employee" value="검색">
+        </form>
+    </div>
+    <div class="employee-list" id="section">
+        <h2>직원 목록</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>직원 login ID</th>
+                    <th>직원 이름</th>
+                    <th>부서 이름</th>
+                    <th>현재 참여 프로젝트 수</th>
+                    <th>세부정보</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                    <tr>
+                        <td>{{ employee[0] }}</td>
+                        <td>{{ employee[1] }}</td>
+                        <td>{{ employee[2] }}</td>
+                        <td>{{ employee[3] }}</td>
+                        <td>
+                            <form method="POST" style="display:inline; margin:0px; padding:0px;">
+                                <input type="hidden" name="employee_id" value="{{ employee[0] }}">
+                                <input type="submit" name="fetch_employee" value="세부정보" style="margin:2px; padding:2px;">
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if employee_detail %}
+    <div id="employeeModal" class="modal" style="display:block;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>직원 세부정보</h2>
+            <p><strong>Login ID:</strong> {{ employee_detail[0] }}</p>
+            <p><strong>이름:</strong> {{ employee_detail[1] }}</p>
+            <p><strong>부서 이름:</strong> {{ employee_detail[2] }}</p>
+            <p><strong>총 프로젝트 참여 횟수:</strong> {{ employee_detail[3] }}</p>
+            <p><strong>학력:</strong> {{ employee_detail[4] }}</p>
+            <p><strong>스킬셋:</strong> {{ employee_detail[5] }}</p>
+            <p><strong>이메일:</strong> {{ employee_detail[6] }}</p>
+            <p><strong>전화번호:</strong> {{ employee_detail[7] }}</p>
+            <p><strong>주소:</strong> {{ employee_detail[8] }}</p>
+            <p><strong>현재 연봉:</strong> {{ employee_detail[9] }}</p>
+            <p><strong>당해년도 월급 기록:</strong> {{ employee_detail[10] }}</p>
+        </div>
+    </div>
+    <script>
+        // 모달 닫기 함수
+        function closeModal() {
+            const modal = document.getElementById('employeeModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+    
+        // 페이지 클릭 시 모달 닫기 (옵션)
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('employeeModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+    <style>
+        #employeeModal {
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #employeeModal .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            position: relative;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+        }
+        
+        #employeeModal .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+        }
+
+        #employeeModal .close:hover {
+            color: #ff0000;
+        }
+
+        #employeeModal h2 {
+            margin-top: 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        #employeeModal p {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #555;
+        }
+
+        #employeeModal p strong {
+            color: #000;
+        }
+    </style>
+    {% endif %}
+{% endblock %}

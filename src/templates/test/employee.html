@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}직원 목록{% endblock %}
+
+{% block content %}
+    <div class="add-employee" id="section">
+        <h3>직원 정보 추가</h3>
+        <form method="POST">
+            <label for="employee_id">ID(*):</label>
+            <input type="text" id="employee_id" name="employee_id" required>
+            
+            <label for="department_id">부서 ID(*):</label>
+            <input type="text" id="department_id" name="department_id" required>
+            
+            <label for="employee_name">이름(*):</label>
+            <input type="text" id="employee_name" name="employee_name" required>
+            
+            <label for="registration_number">등록번호(*):</label>
+            <input type="text" id="registration_number" name="registration_number" required>
+            
+            <label for="education_level">학력(*):</label>
+            <select id="education_level" name="education_level" required>
+                <option value="고등학교">고등학교</option>
+                <option value="학사">학사</option>
+                <option value="석사">석사</option>
+                <option value="박사">박사</option>
+            </select>
+            
+            <label for="skill_set">기술 능력(문자열로 저장):</label>
+            <input type="text" id="skill_set" name="skill_set">
+
+            <label for="employee_email">이메일:</label>
+            <input type="email" id="employee_email" name="employee_email">
+
+            <label for="employee_phone_number">전화번호:</label>
+            <input type="text" id="employee_phone_number" name="employee_phone_number">
+            
+            <label for="employee_address">주소:</label>
+            <input type="text" id="employee_address" name="employee_address">
+            
+            <br><br>
+
+            <input type="submit" name="add_employee" value="직원 추가"> 
+        </form>
+    </div>
+
+    <div class="search-employee" id="section">
+        <h3>직원 검색</h3>
+        <form method="POST">
+            <label for="search_name">이름:</label>
+            <input type="text" id="search_name" name="search_name">
+            <br><br>
+            <input type="submit" name="search_employee" value="검색">
+        </form>
+    </div>
+
+    <div class="section edit-employee" id="section">
+        <h3>직원 수정</h3>
+        <form method="POST">
+            <label for="edit_employee">직원 ID:</label>
+            <input type="text" id="edit_employee_id" name="edit_employee_id" required>
+            <br><br>
+            <input type="submit" name="edit_employee" value="정보 가져오기">
+        </form>
+
+        {% if employee_to_edit %} <!-- 동적으로 생성되는 곳 -->
+        <form method="POST">
+            <input type="hidden" name="employee_id" value="{{ employee_to_edit[0] }}">
+
+            <label for="employee_name">이름:</label>
+            <input type="text" id="employee_name" name="employee_name" value="{{ employee_to_edit[1] }}" required>
+
+            <label for="department_id">부서 ID:</label>
+            <input type="text" id="department_id" name="department_id" value="{{ employee_to_edit[2] }}" required>
+
+            <label for="registration_number">등록번호:</label>
+            <input type="text" id="registration_number" name="registration_number" value="{{ employee_to_edit[3] }}" required>
+
+            <label for="education_level">학력:</label>
+            <select id="education_level" name="education_level" required>
+                <option value="고등학교" {% if employee_to_edit[4] == '고등학교' %}selected{% endif %}>고등학교</option>
+                <option value="학사" {% if employee_to_edit[4] == '학사' %}selected{% endif %}>학사</option>
+                <option value="석사" {% if employee_to_edit[4] == '석사' %}selected{% endif %}>석사</option>
+                <option value="박사" {% if employee_to_edit[4] == '박사' %}selected{% endif %}>박사</option>
+            </select>
+
+            <label for="skill_set">기술 능력:</label>
+            <input type="text" id="skill_set" name="skill_set" value="{{ employee_to_edit[5] }}">
+
+            <label for="employee_email">이메일:</label>
+            <input type="email" id="employee_email" name="employee_email" value="{{ employee_to_edit[6] }}">
+
+            <label for="employee_phone_number">전화번호:</label>
+            <input type="text" id="employee_phone_number" name="employee_phone_number" value="{{ employee_to_edit[7] }}">
+
+            <label for="employee_address">주소:</label>
+            <input type="text" id="employee_address" name="employee_address" value="{{ employee_to_edit[8] }}">
+
+            <br><br>
+
+            <input type="submit" name="update_employee" value="직원 수정"> 
+        </form>
+        {% else %}
+            <p>수정할 직원을 선택해주세요.</p>
+        {% endif %}
+    </div>
+
+    <div class="section delete-employee" id="section">
+        <h3>직원 삭제</h3>
+        <form method="POST">
+            <label for="delete_employee">직원 ID:</label>
+            <input type="text" id="delete_employee_id" name="employee_id" required>
+            <br><br>
+            <input type="submit" name="delete_employee" value="직원 삭제">
+        </form>
+    </div>
+    <!--
+    <thead> 태그는 표의 제목 영역을 나타냅니다. <table> 하위, <tr> 상위에 위치합니다.
+        <tbody> 태그는 표의 본문 영역을 나타냅니다. <thead>와 같은 위치에 존재합니다.
+        <th> 태그는 제목 셀을 나타냅니다. <td> 태그 대신 사용됩니다.
+    -->
+    <div class="employee-list" id="section">
+    <h2>직원 목록</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>직원 ID</th>
+                <th>직원 이름</th>
+                <th>부서 이름</th>
+                <th>주소</th>
+                <th>전화번호</th>
+                <th>이메일</th>
+                <th>수정</th>
+                <th>삭제</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+                <tr>
+                    <td>{{ employee[0] }}</td>
+                    <td>{{ employee[1] }}</td>
+                    <td>{{ employee[2] }}</td>
+                    <td>{{ employee[3] }}</td>
+                    <td>{{ employee[4] }}</td>
+                    <td>{{ employee[5] }}</td>
+                    <td>
+                        <form method="POST" style="display:inline; margin:0px; padding:0px;">
+                            <input type="hidden" name="edit_employee_id" value="{{ employee[0] }}">
+                            <input type="submit" name="fetch_employee" value="수정" style="margin:2px; padding:2px;">
+                        </form>
+                    </td>
+                    <td>
+                        <form method="POST" style="display:inline; margin:0px; padding:0px;">
+                            <input type="hidden" name="employee_id" value="{{ employee[0] }}">
+                            <input type="submit" name="delete_employee" value="삭제" style="margin:2px; padding:2px;">
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}회원가입{% endblock %}
+
+{% block content %}
+    <div class="sign-up" id="section">
+        <h3>신규가입</h3>
+        <form method="POST">
+            <label for="username">ID(*):</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="passwd">비밀번호(*):</label>
+            <input type="text" id="passwd" name="passwd" required>
+            
+            <label for="department_id">부서 ID(*):</label>
+            <input type="text" id="department_id" name="department_id" required>
+            
+            <label for="employee_name">이름(*):</label>
+            <input type="text" id="employee_name" name="employee_name" required>
+            
+            <label for="registration_number">등록번호(*):</label>
+            <input type="text" id="registration_number" name="registration_number" required>
+            
+            <label for="education_level">학력(*):</label>
+            <select id="education_level" name="education_level" required>
+                <option value="고등학교">고등학교</option>
+                <option value="학사">학사</option>
+                <option value="석사">석사</option>
+                <option value="박사">박사</option>
+            </select>
+            
+            <label for="skill_set">기술 능력(문자열로 저장):</label>
+            <input type="text" id="skill_set" name="skill_set">
+
+            <label for="employee_email">이메일:</label>
+            <input type="email" id="employee_email" name="employee_email">
+
+            <label for="employee_phone_number">전화번호:</label>
+            <input type="text" id="employee_phone_number" name="employee_phone_number">
+            
+            <label for="employee_address">주소:</label>
+            <input type="text" id="employee_address" name="employee_address">
+            
+            <br><br>
+
+            <input type="submit" name="add_employee" value="신규가입"> 
+        </form>
+    </div>
+
+    <div class="section edit-employee" id="section">
+        <h3>정보 수정</h3>
+        <form method="POST">
+            <label for="edit_employee">직원 ID:</label>
+            <input type="text" id="edit_employee_id" name="edit_employee_id" required>
+            <br><br>
+            <input type="submit" name="edit_employee" value="정보 가져오기">
+        </form>
+
+        {% if employee_to_edit %} <!-- 동적으로 생성되는 곳 -->
+        <form method="POST">
+            <input type="hidden" name="employee_id" value="{{ employee_to_edit[0] }}">
+
+            <label for="username">ID:</label>
+            <input type="text" id="username" name="username" value="{{ employee_to_edit[9] }}" required>
+
+            <label for="passwd">비밀번호:</label>
+            <input type="text" id="passwd" name="passwd" value="{{ employee_to_edit[10] }}" required>
+
+            <label for="employee_name">이름:</label>
+            <input type="text" id="employee_name" name="employee_name" value="{{ employee_to_edit[1] }}" required>
+
+            <label for="department_id">부서 ID:</label>
+            <input type="text" id="department_id" name="department_id" value="{{ employee_to_edit[2] }}" required>
+
+            <label for="registration_number">등록번호:</label>
+            <input type="text" id="registration_number" name="registration_number" value="{{ employee_to_edit[3] }}" required>
+
+            <label for="education_level">학력:</label>
+            <select id="education_level" name="education_level" required>
+                <option value="고등학교" {% if employee_to_edit[4] == '고등학교' %}selected{% endif %}>고등학교</option>
+                <option value="학사" {% if employee_to_edit[4] == '학사' %}selected{% endif %}>학사</option>
+                <option value="석사" {% if employee_to_edit[4] == '석사' %}selected{% endif %}>석사</option>
+                <option value="박사" {% if employee_to_edit[4] == '박사' %}selected{% endif %}>박사</option>
+            </select>
+
+            <label for="skill_set">기술 능력:</label>
+            <input type="text" id="skill_set" name="skill_set" value="{{ employee_to_edit[5] }}">
+
+            <label for="employee_email">이메일:</label>
+            <input type="email" id="employee_email" name="employee_email" value="{{ employee_to_edit[6] }}">
+
+            <label for="employee_phone_number">전화번호:</label>
+            <input type="text" id="employee_phone_number" name="employee_phone_number" value="{{ employee_to_edit[7] }}">
+
+            <label for="employee_address">주소:</label>
+            <input type="text" id="employee_address" name="employee_address" value="{{ employee_to_edit[8] }}">
+
+            <br><br>
+
+            <input type="submit" name="update_employee" value="정보 수정"> 
+        </form>
+        {% else %}
+            <p>본인의 직원 ID를 입력해주세요.</p>
+        {% endif %}
+    </div>
+{% endblock %}

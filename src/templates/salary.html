@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}직원 월급 조회{% endblock %}
+
+{% block content %}
+    <div class="search-employee-salary" id="section">
+        <h3>직원 월급 조회</h3>
+        <form method="POST">
+            <label for="search_id">직원 ID:</label>
+            <input type="text" id="search_id" name="search_id" required>
+            <br><br>
+            <input type="submit" name="search_employee" value="조회">
+        </form>
+    </div>
+
+    {% if employees %}
+    <div class="employee-salary-result" id="section">
+        <h3>직원 월급 정보</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>직원 ID</th>
+                    <th>직원 이름</th>
+                    <th>월급 ID</th>
+                    <th>계약 ID</th>
+                    <th>월급</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                <tr>
+                    <td>{{ employee[0] }}</td>
+                    <td>{{ employee[1] }}</td>
+                    <td>{{ employee[2] }}</td>
+                    <td>{{ employee[3] }}</td>
+                    <td>{{ employee[4] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>직원 정보를 찾을 수 없습니다.</p>
+    {% endif %}
+{% endblock %}
