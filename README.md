@@ -37,7 +37,8 @@
 * **표준 코드:** 직급 코드, 부서 코드 등 공통 코드 관리
 
 ### 3.2. ERD (Entity Relationship Diagram)
-<img width="2758" height="1222" alt="image" src="https://github.com/user-attachments/assets/fff7a06f-df50-4eba-b072-b8c5856b9d95" />
+<img width="4493" height="3177" alt="03_ERD_Model" src="https://github.com/user-attachments/assets/ef8a4586-107a-405d-bc7f-37ea8466c014" />
+
 
 * **설계 특징:**
     * **제3정규형(3NF) 준수:** 중복 데이터를 제거하여 이상 현상(Anomaly) 방지.
