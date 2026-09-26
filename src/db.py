@@ -17,10 +17,12 @@ def init_db(app):
 
     @app.before_request
     def create_db_connection():
-        # 공용 DB 사용할 때
-        g.db = cx_Oracle.connect(user="db_project_group4", password="1111", dsn="shinnk.iptime.org:11522/XE")
-        # 개인 DB 사용할 때
-        # g.db = cx_Oracle.connect(user="class_c", password="????", dsn="localhost/XE")
+        # 접속 정보는 환경변수로 주입
+        g.db = cx_Oracle.connect(
+            user=os.environ["ORACLE_USER"],
+            password=os.environ["ORACLE_PASSWORD"],
+            dsn=os.environ.get("ORACLE_DSN", "localhost/XE"),
+        )
 
     @app.teardown_request
     def close_db_connection(exception):
