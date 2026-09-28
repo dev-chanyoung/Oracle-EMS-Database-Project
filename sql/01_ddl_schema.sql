@@ -11,14 +11,14 @@ CREATE TABLE employee (
     employee_id INTEGER NOT NULL, -- auto increment
     department_id INTEGER NOT NULL,
     employee_name VARCHAR2(30) NOT NULL,
-    registration_number VARCHAR2(14) NOT NULL, -- 정말 varchar2로 할 것인가
+    registration_number VARCHAR2(100) NOT NULL, -- 주민등록번호 AES-256-GCM 암호문(base64), 평문 저장 금지
     education_level VARCHAR2(50) NOT NULL,
     skill_set VARCHAR2(200) NULL, -- 스킬셋은 string으로 저장
     employee_email VARCHAR2(50) NULL,
     employee_phone_number VARCHAR2(20) NULL,
     employee_address VARCHAR2(100) NULL,
     username VARCHAR2(30) NOT NULL UNIQUE, -- 로그인 ID UNIQUE
-    passwd VARCHAR2(255) NOT NULL, -- 암호화된 비밀번호
+    passwd VARCHAR2(255) NOT NULL, -- 비밀번호 해시(werkzeug scrypt), 평문 저장 금지
     CONSTRAINT PK_EMPLOYEE PRIMARY KEY (employee_id),
     CONSTRAINT FK_Department_TO_Employee_1 FOREIGN KEY (department_id) REFERENCES department (department_id)
 );

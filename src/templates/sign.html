@@ -10,7 +10,7 @@
             <input type="text" id="username" name="username" required>
 
             <label for="passwd">비밀번호(*):</label>
-            <input type="text" id="passwd" name="passwd" required>
+            <input type="password" id="passwd" name="passwd" required>
             
             <label for="department_id">부서 ID(*):</label>
             <input type="text" id="department_id" name="department_id" required>
@@ -18,7 +18,7 @@
             <label for="employee_name">이름(*):</label>
             <input type="text" id="employee_name" name="employee_name" required>
             
-            <label for="registration_number">등록번호(*):</label>
+            <label for="registration_number">주민등록번호(*):</label>
             <input type="text" id="registration_number" name="registration_number" required>
             
             <label for="education_level">학력(*):</label>
@@ -63,8 +63,8 @@
             <label for="username">ID:</label>
             <input type="text" id="username" name="username" value="{{ employee_to_edit[9] }}" required>
 
-            <label for="passwd">비밀번호:</label>
-            <input type="text" id="passwd" name="passwd" value="{{ employee_to_edit[10] }}" required>
+            <label for="passwd">비밀번호 (변경할 때만 입력):</label>
+            <input type="password" id="passwd" name="passwd">
 
             <label for="employee_name">이름:</label>
             <input type="text" id="employee_name" name="employee_name" value="{{ employee_to_edit[1] }}" required>
@@ -72,8 +72,8 @@
             <label for="department_id">부서 ID:</label>
             <input type="text" id="department_id" name="department_id" value="{{ employee_to_edit[2] }}" required>
 
-            <label for="registration_number">등록번호:</label>
-            <input type="text" id="registration_number" name="registration_number" value="{{ employee_to_edit[3] }}" required>
+            <label for="registration_number">주민등록번호 (현재: {{ employee_to_edit[3] }}, 변경할 때만 입력):</label>
+            <input type="text" id="registration_number" name="registration_number">
 
             <label for="education_level">학력:</label>
             <select id="education_level" name="education_level" required>
