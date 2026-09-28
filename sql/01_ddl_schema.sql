@@ -171,14 +171,18 @@ CREATE SEQUENCE seminar_id_seq START WITH 10000 INCREMENT BY 1;
 -- mview 생성
 CREATE MATERIALIZED VIEW employee_search_mv
 AS
-SELECT e.username,
+SELECT e.employee_id,
+       e.username,
        e.employee_name,
        d.department_name,
+       e.employee_phone_number,
+       e.employee_email,
        COUNT(pp.project_id) AS current_projects
 FROM employee e
 JOIN department d ON e.department_id = d.department_id
 LEFT JOIN participation_project pp ON e.employee_id = pp.employee_id AND pp.end_date IS NULL
-GROUP BY e.username, e.employee_name, d.department_name;
+GROUP BY e.employee_id, e.username, e.employee_name, d.department_name,
+         e.employee_phone_number, e.employee_email;
 
 
 -- index 설정

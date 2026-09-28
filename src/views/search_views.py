@@ -40,28 +40,33 @@ def get_search_params():
 
 def build_search_query(params):
     query = """
-        SELECT username,
-            employee_name,
-            department_name,
-            current_projects
-        FROM employee_search_mv
+        SELECT mv.username,
+            mv.employee_name,
+            mv.department_name,
+            mv.current_projects,
+            mv.employee_id
+        FROM employee_search_mv mv
         WHERE 1=1
     """
     bind_params = {}
     if params['search_name']:
-        query += " AND employee_name LIKE :employee_name"
+        query += " AND mv.employee_name LIKE :employee_name"
         bind_params['employee_name'] = f"%{params['search_name']}%"
     if params['search_department']:
-        query += " AND department_name LIKE :department_name"
+        query += " AND mv.department_name LIKE :department_name"
         bind_params['department_name'] = f"%{params['search_department']}%"
     if params['search_position']:
-        query += " AND role LIKE :role"
+        # 직무(role)는 사원 1명에 여러 개일 수 있어 MView에 두지 않고, 현재 참여 중인 프로젝트에서 찾는다
+        query += """ AND EXISTS (SELECT 1 FROM participation_project pp
+                                 WHERE pp.employee_id = mv.employee_id
+                                   AND pp.end_date IS NULL
+                                   AND pp.role LIKE :role)"""
         bind_params['role'] = f"%{params['search_position']}%"
     if params['search_phone']:
-        query += " AND employee_phone_number LIKE :phone"
+        query += " AND mv.employee_phone_number LIKE :phone"
         bind_params['phone'] = f"%{params['search_phone']}%"
     if params['search_email']:
-        query += " AND employee_email LIKE :email"
+        query += " AND mv.employee_email LIKE :email"
         bind_params['email'] = f"%{params['search_email']}%"
     return query, bind_params
 
