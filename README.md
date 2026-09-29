@@ -14,7 +14,7 @@
 * **담당 역할:** 팀장, 데이터베이스 설계 및 SQL 작성
 * **주요 업무:**
     * 데이터 표준화 수립 (표준 용어, 도메인, 코드 정의)
-    * 개념/논리/물리 데이터 모델링 (ERD 설계, 3NF 정규화 적용)
+    * 개념/논리/물리 데이터 모델링 (ERD 설계, 정규화 적용)
     * MView 및 인덱스를 활용한 검색/통계 쿼리 성능 개선 기반 마련
     * 통계 쿼리 및 동적 검색을 위한 Native SQL 베이스라인 작성
 
@@ -25,7 +25,7 @@
 ## 2. Tech Stack
 | Category | Technology |
 | :--- | :--- |
-| **Database** | Oracle Database 19c (XE) |
+| **Database** | Oracle Database (XE) |
 | **Modeling** | DA# (Data Architecture), SQL Developer |
 | **Language** | Native SQL (DDL, DML, DQL) |
 | **Security** (프로젝트 이후 개선) | Python `cryptography` (AES-256-GCM), `werkzeug.security` (scrypt 해시) |
@@ -45,8 +45,8 @@
 <img width="4493" height="3177" alt="03_ERD_Model" src="https://github.com/user-attachments/assets/ef8a4586-107a-405d-bc7f-37ea8466c014" />
 
 * **설계 특징:**
-    * **제3정규형(3NF) 준수:** 중복 데이터를 제거하여 갱신 이상(Anomaly) 방지.
-    * **이력 관리 고려:** 급여 및 계약(`CONTRACT`, `SALARY`) 테이블과 프로젝트 참여 이력(`PARTICIPATION_PROJECT`)을 설계하여 시간에 따른 데이터 변동 추적.
+    * **정규화 적용:** 중복 데이터를 줄여 갱신 이상(Anomaly)을 방지하도록 설계했습니다. 다만 엄밀한 제3정규형은 아닙니다. `employee.skill_set`은 여러 스킬을 쉼표로 이은 문자열 한 컬럼이고, `salary`는 `contract_id`로 정해지는 `employee_id`를 함께 가집니다. 평가 항목(업무 수행/커뮤니케이션)은 `evaluation_type` 컬럼으로 한 테이블에 합쳤습니다(팀 보고서 주요 결정사항 1: 조인을 줄이는 대신 중복을 감수).
+    * **이력 관리 고려:** 급여 및 계약(`CONTRACT`, `SALARY`) 테이블과 프로젝트 참여 이력(`PARTICIPATION_PROJECT`)을 설계하여 시간에 따른 데이터 변동 추적. `CONTRACT`와 `SALARY`는 발생일(`contract_date`, `salary_date`) 하나만 두고 날짜별로 행을 쌓는 방식이라 종료일은 없습니다(앱은 계약을 `contract_date` 최신순으로 골라 씁니다). 시작일·종료일·역할은 `PARTICIPATION_PROJECT`에만 있습니다.
     * **참여 이력 설계 근거:** 요구사항 정의서의 "참여 인원은 언제든 바뀔 수 있다", "특정 시점에 어떤 직원이 어떤 프로젝트·직무에 참여했는지 알 수 있어야 한다"를 반영해 `PARTICIPATION_PROJECT`에 시작일·종료일·역할을 두었습니다. 참여가 끝나면 행을 삭제하지 않고 종료일을 기록하도록 CRUD 매트릭스에 정의했습니다(참여 종료 = Update).
 
 <br>
@@ -54,12 +54,14 @@
 ## 4. Key Features & Implementation (주요 성과)
 
 ### A. 제약조건을 활용한 데이터 무결성 확보
-* 애플리케이션의 검증 로직에만 의존하지 않고, DB 레벨에서 명시적인 PK/FK 및 `CHECK` 제약조건을 강제하여 이상 데이터 삽입을 원천 차단했습니다.
-* 예: 프로젝트 종료일이 시작일보다 빠를 수 없도록 제한(`CHECK (end_date >= start_date)`), 평가 점수 도메인 제한(`CHECK (score BETWEEN 0 AND 10)`), 역할 제한(`CHECK (role IN (...))`).
+* 애플리케이션의 검증 로직에만 의존하지 않고, DB 레벨에서 명시적인 PK/FK 및 `CHECK` 제약조건을 강제하여 이상 데이터가 DB에 들어가지 않도록 했습니다.
+* 예: 프로젝트 종료일이 시작일보다 빠를 수 없도록 제한(`CHECK (end_date >= start_date)`), 동료평가 점수 제한(`peer_evaluation`의 `CHECK (score BETWEEN 0 AND 10)`), 역할 제한(`CHECK (role IN (...))`), 평가 유형 제한(세 평가 테이블 모두).
+* 범위: 점수 CHECK는 `peer_evaluation`에만 있습니다. `pm_evaluation`, `customer_evaluation`에는 점수 제약이 없고, 앱에도 평가를 입력하는 화면이 없어 이 두 테이블의 점수는 검증되지 않습니다.
 
 ### B. Materialized View(구체화 뷰)를 활용한 통계 쿼리 단순화
 * 사원, 부서, 현재 참여 중인 프로젝트 개수 등 여러 테이블(`employee`, `department`, `participation_project`)에 분산된 데이터를 대시보드에 노출하기 위해 다중 조인과 집계 연산(`GROUP BY`)이 포함된 복잡한 쿼리를 작성했습니다.
 * 백엔드가 매번 다중 조인·집계 쿼리를 작성하지 않도록, 해당 결과를 `employee_search_mv` 구체화 뷰로 생성하여 단일 뷰 조회로 구조를 단순화했습니다. (성능을 측정하지는 않았으며, 설계 단계에서 쿼리 복잡도를 줄이는 것이 목적이었습니다.)
+* 프로젝트 당시(팀 보고서 기준) 이 MV의 컬럼은 `username`, `employee_name`, `department_name`, `current_projects` 4개였습니다. 프로젝트 이후(2026-09-28) 검색 화면이 MV에 없는 컬럼(사원번호·전화번호·이메일)을 조회하던 오류를 고치면서 `employee_id`, `employee_phone_number`, `employee_email`을 추가했습니다.
 
 ### C. 검색 패턴 분석을 통한 단일 인덱스 적용
 * 사용자 동적 검색에서 빈번하게 조회 조건으로 사용되는 주요 컬럼(사원명, 부서명)을 분석했습니다.
@@ -69,7 +71,7 @@
 * 백엔드 개발자가 사용자 입력 조건에 따라 동적 WHERE 절을 쉽게 조합할 수 있도록, 기준이 되는 베이스 Native SQL과 서브쿼리 문을 직접 도출하여 제공했습니다.
 
 ### E. 민감정보 평문 저장 개선 (프로젝트 이후)
-정보보안 마이크로디그리를 이수하며 민감정보 평문 저장의 위험을 배운 뒤, 이 프로젝트의 `employee` 테이블을 다시 점검했습니다.
+정보보안 마이크로디그리 과정(컴퓨터보안 등)을 학습하며 민감정보 평문 저장의 위험을 배운 뒤, 이 프로젝트의 `employee` 테이블을 다시 점검했습니다.
 
 * **발견한 문제**
     * 주민등록번호(`registration_number`)가 `VARCHAR2(14)` 평문으로 저장되고 있었습니다.
@@ -94,7 +96,7 @@ cd src && python migrate_sensitive_data.py
 
 ## 5. Directory Structure (DB & Docs 중심)
 ```text
-Oracle-EMS-Project
+Oracle-EMS-Database-Project
 ├── docs/                      # 📂 DB 설계 산출물 (핵심 포트폴리오)
 │   ├── 01_Requirements.xlsx   # 요구사항 정의서
 │   ├── 02_Standardization.xlsx# 표준 용어/도메인/코드 정의서
@@ -119,4 +121,4 @@ Oracle-EMS-Project
 * **민감 정보 평문 저장 → 이후 개선:** 기능 구현에 집중하여 주민등록번호와 비밀번호를 평문으로 저장했습니다. 이후 비밀번호는 해시로, 주민등록번호는 AES-256-GCM 암호문으로 저장하도록 고쳤습니다(4.E). 남은 과제도 있습니다. 키 교체(rotation) 절차가 없고, 키를 환경변수로만 관리해 실무라면 KMS 같은 별도 키 관리 체계가 필요합니다. 또 개인정보보호법 제24조의2는 법령 근거 없는 주민등록번호 처리를 금지하므로, 암호화 이전에 이 컬럼을 수집해야 하는지부터 요구사항 단계에서 따졌어야 했습니다.
 * **B-Tree 인덱스 스캔의 한계 인지:** 검색 성능을 위해 B-Tree 인덱스를 생성했으나, 동적 검색 환경에서 `LIKE '%검색어%'` 형태의 양방향 와일드카드 검색을 수행할 경우 옵티마이저가 인덱스를 타지 못하고 Full Table Scan을 유발한다는 한계를 프로젝트 이후 학습을 통해 인지했습니다. 검색 패턴에 맞는 인덱스 설계가 중요하다는 점을 배웠습니다.
 * **참여 이력 PK의 한계:** `PARTICIPATION_PROJECT`의 PK가 (사원, 프로젝트)라서, 같은 직원이 같은 프로젝트에서 빠졌다가 다시 투입되면 이력이 한 행으로만 남습니다. 재투입까지 추적하려면 시작일을 PK에 포함하거나 별도 대리키를 두어야 합니다.
-* **논리적 모델링(슈퍼/서브타입)의 부재:** `peer_evaluation`, `pm_evaluation`, `customer_evaluation` 등 컬럼 구조가 거의 동일한 테이블을 물리적으로 분리하여 스키마를 구성했습니다. 시스템 확장성 및 쿼리 중복을 고려할 때, 이를 단일 평가(Evaluation) 엔터티로 통합하고 '평가자 타입' 컬럼으로 분류하는 슈퍼/서브타입 모델링을 적용하는 것이 훨씬 효율적인 설계임을 확인했습니다.
+* **논리적 모델링(슈퍼/서브타입)의 부재:** `peer_evaluation`, `pm_evaluation`, `customer_evaluation` 등 컬럼 구조가 거의 동일한 테이블을 평가자 종류별로 물리적으로 분리하여 스키마를 구성했습니다. 프로젝트 당시 팀 보고서에는 평가 정보를 한 테이블에 합치는 안(조인 불필요, 중복 우려)과 슈퍼/서브타입 안(유지보수 용이, 조인 성능 우려)을 비교한 기록이 있습니다. 지금 시점에서는 시스템 확장성 및 쿼리 중복을 고려할 때, 이를 단일 평가(Evaluation) 엔터티로 통합하고 '평가자 타입' 컬럼으로 분류하는 슈퍼/서브타입 모델링이 더 효율적이라고 판단합니다.
