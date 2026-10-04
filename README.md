@@ -45,7 +45,7 @@
 <img width="4493" height="3177" alt="03_ERD_Model" src="https://github.com/user-attachments/assets/ef8a4586-107a-405d-bc7f-37ea8466c014" />
 
 * **설계 특징:**
-    * **정규화 적용:** 중복 데이터를 줄여 갱신 이상(Anomaly)을 방지하도록 설계했습니다. 다만 엄밀한 제3정규형은 아닙니다. `employee.skill_set`은 여러 스킬을 쉼표로 이은 문자열 한 컬럼이고, `salary`는 `contract_id`로 정해지는 `employee_id`를 함께 가집니다. 평가 항목(업무 수행/커뮤니케이션)은 `evaluation_type` 컬럼으로 한 테이블에 합쳤습니다(팀 보고서 주요 결정사항 1: 조인을 줄이는 대신 중복을 감수).
+    * **정규화 적용:** 중복 데이터를 줄여 갱신 이상(Anomaly)을 방지하도록 설계했습니다. 다만 엄밀한 제3정규형은 아닙니다. `salary`가 `contract_id`로 정해지는 `employee_id`를 함께 가지는 것은 프로젝트 요구사항에 따라 팀에서 논의해 넣은 반정규화로, 급여 조회 시 `contract`를 거치지 않고 `employee`와 바로 조인하기 위한 중복입니다. 다만 두 `employee_id`가 일치하도록 강제하는 제약(복합 FK 등)은 두지 않았습니다. 개선한다면 `salary`에서 `employee_id`를 제거하거나 복합 FK로 일치를 강제하겠습니다. 별개로 `employee.skill_set`은 여러 스킬을 쉼표로 이은 문자열 한 컬럼이라 제1정규형을 만족하지 않습니다(별도 테이블로 분리하는 것이 개선 방향). 평가 항목(업무 수행/커뮤니케이션)은 `evaluation_type` 컬럼으로 한 테이블에 합쳤습니다(팀 보고서 주요 결정사항 1: 조인을 줄이는 대신 중복을 감수).
     * **이력 관리 고려:** 급여 및 계약(`CONTRACT`, `SALARY`) 테이블과 프로젝트 참여 이력(`PARTICIPATION_PROJECT`)을 설계하여 시간에 따른 데이터 변동 추적. `CONTRACT`와 `SALARY`는 발생일(`contract_date`, `salary_date`) 하나만 두고 날짜별로 행을 쌓는 방식이라 종료일은 없습니다(앱은 계약을 `contract_date` 최신순으로 골라 씁니다). 시작일·종료일·역할은 `PARTICIPATION_PROJECT`에만 있습니다.
     * **참여 이력 설계 근거:** 요구사항 정의서의 "참여 인원은 언제든 바뀔 수 있다", "특정 시점에 어떤 직원이 어떤 프로젝트·직무에 참여했는지 알 수 있어야 한다"를 반영해 `PARTICIPATION_PROJECT`에 시작일·종료일·역할을 두었습니다. 참여가 끝나면 행을 삭제하지 않고 종료일을 기록하도록 CRUD 매트릭스에 정의했습니다(참여 종료 = Update).
 
