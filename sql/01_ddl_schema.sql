@@ -155,7 +155,7 @@ CREATE TABLE seminar_participation (
 );
 
 COMMENT ON TABLE participation_project IS '프로젝트 참여 테이블';
-COMMENT ON COLUMN participation_project.start_date IS 'check를 사용하여 프로젝트 시작일보다 커야 하고 종료일보다 작아야 한다';
+COMMENT ON COLUMN participation_project.start_date IS '참여 시작일은 프로젝트 시작일 이후, 참여 종료일은 프로젝트 종료일 이전이어야 하지만 제약으로 구현하지 않았다 (CHECK는 다른 테이블을 참조할 수 없어 트리거가 필요함)';
 
 -- 시퀀스 생성
 CREATE SEQUENCE employee_id_seq START WITH 10000 INCREMENT BY 1;
