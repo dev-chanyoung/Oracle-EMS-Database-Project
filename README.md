@@ -1,123 +1,301 @@
-# 🏢 Enterprise Employee Management System (EMS) - Database Design & SQL
+# 🏢 Oracle EMS: 사원 관리 시스템 데이터베이스 설계
 
-> **Oracle DB 기반의 사원 관리 시스템 데이터베이스 구축 프로젝트**
-> **초점:** 데이터 표준화, 정규화 모델링, 제약조건 및 통계/검색 SQL 최적화 기반 마련
+## 🌟 프로젝트 소개
+**Oracle EMS**는 100명 규모 SI 업체의 사원·부서·프로젝트 참여·계약·급여·평가 정보를 관리하는 **Oracle 기반 사원 관리 시스템**입니다. 데이터베이스 설계 수업의 4인 팀 프로젝트로, 요구사항 분석부터 ERD, 표준 정의, DDL, 시드 데이터 적재까지 진행했습니다.
 
-<br>
+핵심은 **데이터 모델링과 DB 단 무결성**입니다. 13개 테이블에 PK·FK·CHECK 제약을 걸어 잘못된 데이터가 DB에 들어오지 않게 했고, "참여 인원은 언제든 바뀔 수 있다"는 요구를 **참여 이력 테이블과 종료일 기록**으로 풀어 특정 시점의 참여 현황을 조회할 수 있게 설계했습니다.
 
-## 1. Project Overview
-기업의 인사 정보(사원, 부서, 평가, 프로젝트 등) 관리를 위한 데이터베이스 구축 프로젝트입니다.
-4인 팀 프로젝트에서 팀장으로서 요구사항 분석, 데이터 표준화, ERD 설계, 물리 DDL 작성, 백엔드 연동용 SQL 작성 등 **데이터베이스 모델링 및 SQL 작성**을 담당했습니다.
-
-* **개발 기간:** 2024.09 ~ 2024.12 (약 14주)
-* **참여 인원:** 4명
-* **담당 역할:** 팀장, 데이터베이스 설계 및 SQL 작성
-* **주요 업무:**
-    * 데이터 표준화 수립 (표준 용어, 도메인, 코드 정의)
-    * 개념/논리/물리 데이터 모델링 (ERD 설계, 정규화 적용)
-    * MView 및 인덱스를 활용한 검색/통계 쿼리 성능 개선 기반 마련
-    * 통계 쿼리 및 동적 검색을 위한 Native SQL 베이스라인 작성
-
-*(※ Python Flask 웹 애플리케이션(`src/`)은 다른 팀원이 구현했습니다. 본 문서는 본인이 담당한 **DB 설계 및 SQL 작성 산출물**을 중심으로 작성했습니다. 프로젝트 이후 진행한 민감정보 암호화 개선(4.E)은 본인이 `src/`에 직접 반영했습니다.)*
-
-<br>
-
-## 2. Tech Stack
-| Category | Technology |
+| 항목 | 내용 |
 | :--- | :--- |
-| **Database** | Oracle Database (XE) |
-| **Modeling** | DA# (Data Architecture), SQL Developer |
-| **Language** | Native SQL (DDL, DML, DQL) |
-| **Security** (프로젝트 이후 개선) | Python `cryptography` (AES-256-GCM), `werkzeug.security` (scrypt 해시) |
+| **개발 기간** | 2024-09 ~ 2024-12 (데이터베이스 설계 수업, 4인 팀) · 2026-09 ~ 2026-10 보안 리팩토링 |
+| **담당 범위** | DB 설계 (DDL, 제약조건, 이력 관리, Materialized View·인덱스·시퀀스) · DB 관리 스크립트 |
+| **팀원 담당** | DB 설계(팀원 1명이 함께 설계), 웹 애플리케이션(Flask), 시드 데이터 생성 스크립트 |
 
-<br>
+---
 
-## 3. Core Architecture & Modeling
-소스 코드 작성 전, 데이터 거버넌스 준수와 철저한 설계 문서화를 거쳐 DB 구축을 진행했습니다.
+## 🎯 My Key Contributions
+요구사항을 정규화된 데이터 구조로 옮기고, 그 구조가 DB 단에서 스스로 데이터를 지키도록 만드는 데 집중했습니다.
 
-### 3.1. 데이터 표준화 (Data Standardization)
-무분별한 컬럼명 사용을 방지하고 데이터 일관성을 유지하기 위해 데이터 표준을 수립했습니다. ([docs/02_Standardization.xlsx](docs/02_Standardization.xlsx) 참조)
-* **표준 단어:** 사원, 부서, 평가 등 시스템 내에서 사용되는 업무 용어 정의
-* **표준 도메인:** 데이터 타입 및 길이(예: VARCHAR2, NUMBER)를 일관되게 적용
-* **표준 코드:** 직위, 평가 유형 등 공통 코드화 가능한 데이터 분류
+* **데이터 모델링:** 요구사항(직원 100명, 개발자 70명, 프로젝트 참여·평가·계약·급여)을 **최종 13개 테이블**로 설계 (팀원 1명과 함께 설계, 3정규형을 기준으로 한 **부분 정규화**, 일부는 반정규화)
+* **DB 단 무결성:** **PK 13 · FK 20 · CHECK 8 · UNIQUE 1** 제약으로 날짜 순서·직무 값·평가 유형·동료평가 점수 범위를 강제
+* **시점별 이력 관리:** 참여 이력(시작일·종료일·직무)을 별도 테이블로 두고, 끝난 참여는 삭제하지 않고 종료일을 기록
+* **검색을 위한 객체:** 사원 검색용 집계 Materialized View 1개, 인덱스 2개, 시퀀스 9개
 
-### 3.2. ERD (Entity Relationship Diagram)
-<img width="4493" height="3177" alt="03_ERD_Model" src="https://github.com/user-attachments/assets/ef8a4586-107a-405d-bc7f-37ea8466c014" />
+---
 
-* **설계 특징:**
-    * **정규화 적용:** 중복 데이터를 줄여 갱신 이상(Anomaly)을 방지하도록 설계했습니다. 다만 엄밀한 제3정규형은 아닙니다. `salary`가 `contract_id`로 정해지는 `employee_id`를 함께 가지는 것은 프로젝트 요구사항에 따라 팀에서 논의해 넣은 반정규화로, 급여 조회 시 `contract`를 거치지 않고 `employee`와 바로 조인하기 위한 중복입니다. 다만 두 `employee_id`가 일치하도록 강제하는 제약(복합 FK 등)은 두지 않았습니다. 개선한다면 `salary`에서 `employee_id`를 제거하거나 복합 FK로 일치를 강제하겠습니다. 별개로 `employee.skill_set`은 여러 스킬을 쉼표로 이은 문자열 한 컬럼이라 제1정규형을 만족하지 않습니다(별도 테이블로 분리하는 것이 개선 방향). 평가 항목(업무 수행/커뮤니케이션)은 `evaluation_type` 컬럼으로 한 테이블에 합쳤습니다(팀 보고서 주요 결정사항 1: 조인을 줄이는 대신 중복을 감수).
-    * **이력 관리 고려:** 급여 및 계약(`CONTRACT`, `SALARY`) 테이블과 프로젝트 참여 이력(`PARTICIPATION_PROJECT`)을 설계하여 시간에 따른 데이터 변동 추적. `CONTRACT`와 `SALARY`는 발생일(`contract_date`, `salary_date`) 하나만 두고 날짜별로 행을 쌓는 방식이라 종료일은 없습니다(앱은 계약을 `contract_date` 최신순으로 골라 씁니다). 시작일·종료일·역할은 `PARTICIPATION_PROJECT`에만 있습니다.
-    * **참여 이력 설계 근거:** 요구사항 정의서의 "참여 인원은 언제든 바뀔 수 있다", "특정 시점에 어떤 직원이 어떤 프로젝트·직무에 참여했는지 알 수 있어야 한다"를 반영해 `PARTICIPATION_PROJECT`에 시작일·종료일·역할을 두었습니다. 참여가 끝나면 행을 삭제하지 않고 종료일을 기록하도록 CRUD 매트릭스에 정의했습니다(참여 종료 = Update).
+## 🛠 기술 스택 (Tech Stack)
 
-<br>
+### **Database (담당)**
+* **DBMS:** Oracle Database 19c
+* **Language:** SQL (DDL, DML)
+* **Modeling:** DA# (ERD, IE/Crow's foot 표기), SQL Developer
+* **Security (2026 리팩토링):** Python `cryptography` (AES-256-GCM), `werkzeug.security` (scrypt 해시)
 
-## 4. Key Features & Implementation (주요 성과)
+### **Application (Team)**
+* **Backend / Web:** Python, Flask (서버 사이드 렌더링)
+* **DB Driver:** cx_Oracle, Oracle Instant Client
 
-### A. 제약조건을 활용한 데이터 무결성 확보
-* 애플리케이션의 검증 로직에만 의존하지 않고, DB 레벨에서 명시적인 PK/FK 및 `CHECK` 제약조건을 강제하여 이상 데이터가 DB에 들어가지 않도록 했습니다.
-* 예: 프로젝트 종료일이 시작일보다 빠를 수 없도록 제한(`CHECK (end_date >= start_date)`), 동료평가 점수 제한(`peer_evaluation`의 `CHECK (score BETWEEN 0 AND 10)`), 역할 제한(`CHECK (role IN (...))`), 평가 유형 제한(세 평가 테이블 모두).
-* 범위: 점수 CHECK는 `peer_evaluation`에만 있습니다. `pm_evaluation`, `customer_evaluation`에는 점수 제약이 없고, 앱에도 평가를 입력하는 화면이 없어 이 두 테이블의 점수는 검증되지 않습니다.
+---
 
-### B. Materialized View(구체화 뷰)를 활용한 통계 쿼리 단순화
-* 사원, 부서, 현재 참여 중인 프로젝트 개수 등 여러 테이블(`employee`, `department`, `participation_project`)에 분산된 데이터를 대시보드에 노출하기 위해 다중 조인과 집계 연산(`GROUP BY`)이 포함된 복잡한 쿼리를 작성했습니다.
-* 백엔드가 매번 다중 조인·집계 쿼리를 작성하지 않도록, 해당 결과를 `employee_search_mv` 구체화 뷰로 생성하여 단일 뷰 조회로 구조를 단순화했습니다. (성능을 측정하지는 않았으며, 설계 단계에서 쿼리 복잡도를 줄이는 것이 목적이었습니다.)
-* 프로젝트 당시(팀 보고서 기준) 이 MV의 컬럼은 `username`, `employee_name`, `department_name`, `current_projects` 4개였습니다. 프로젝트 이후(2026-09-28) 검색 화면이 MV에 없는 컬럼(사원번호·전화번호·이메일)을 조회하던 오류를 고치면서 `employee_id`, `employee_phone_number`, `employee_email`을 추가했습니다.
+## 🚀 주요 기능
 
-### C. 검색 컬럼 인덱스 생성
-* 동적 검색에서 조건으로 쓰일 것으로 예상한 컬럼(사원명, 부서명)에 B-Tree 단일 인덱스(`idx_employee_name`, `idx_department_name`)를 생성했습니다. 완전 일치(Equal) 검색을 염두에 둔 설계입니다.
+### 📚 데이터 표준화
+* 표준 용어·도메인(타입과 길이)·공통 코드(부서 구분 등)를 정의해 컬럼명과 데이터 타입을 맞췄습니다. 이 정의서는 수업의 구축 단계(11/18) 산출물로 제출했습니다.
+* 도메인은 DDL에 그대로 반영했습니다 (예: 직원명 `VARCHAR2(30)`, 이메일 `VARCHAR2(50)`, 전화번호 `VARCHAR2(20)`, 프로젝트명 `VARCHAR2(100)`).
 
-### D. 복잡한 통계 및 동적 검색을 위한 SQL 제공
-* 백엔드 개발자가 사용자 입력 조건에 따라 동적 WHERE 절을 쉽게 조합할 수 있도록, 기준이 되는 베이스 Native SQL과 서브쿼리 문을 직접 도출하여 제공했습니다.
+### 🔒 DB 단 무결성
+* 애플리케이션 검증에만 의존하지 않고 DB가 직접 규칙을 강제합니다. (아래 [제약과 검증](#-제약과-검증) 참고)
 
-### E. 민감정보 평문 저장 개선 (프로젝트 이후)
-정보보안 마이크로디그리 과정(컴퓨터보안 등)을 학습하며 민감정보 평문 저장의 위험을 배운 뒤, 이 프로젝트의 `employee` 테이블을 다시 점검했습니다.
+### 🕓 시점별 이력 관리
+* 프로젝트 참여는 시작일·종료일·직무를 가진 이력 테이블로 관리하고, 계약과 급여도 이와 마찬가지로 계약일·급여일별로 **행을 쌓아 이력을 보존**합니다.
 
-* **발견한 문제**
-    * 주민등록번호(`registration_number`)가 `VARCHAR2(14)` 평문으로 저장되고 있었습니다.
-    * DDL에는 비밀번호 컬럼을 `-- 암호화된 비밀번호`로 설계해 두었지만, 실제 코드는 입력값을 그대로 저장하고 있었고 수정 화면에서 비밀번호를 다시 조회해 보여주고 있었습니다. 설계 의도가 구현에 반영됐는지 당시 확인하지 않았던 것입니다.
-    * 저장 완료 메시지에 입력값 전체(주민등록번호·비밀번호 포함)를 그대로 출력하고 있었습니다.
-* **조치** (`src/security.py`)
-    * **비밀번호:** 복호화할 필요가 없으므로 `werkzeug.security`의 scrypt 단방향 해시만 저장합니다. 수정 화면에서는 조회하지 않고, 새로 입력했을 때만 바꿉니다.
-    * **주민등록번호:** 원문이 필요할 수 있어 AES-256-GCM으로 암호화해 저장합니다(무작위 nonce + 인증 태그, base64 인코딩). 키는 DB가 아닌 환경변수(`RRN_ENCRYPTION_KEY`)로 분리했고, 화면에는 `900101-1******`처럼 마스킹한 값만 보여줍니다. 암호문 길이에 맞춰 컬럼을 `VARCHAR2(100)`으로 넓혔습니다.
-    * 완료 메시지에는 ID만 출력하도록 바꿨습니다.
-* **기존 데이터 전환** (`src/migrate_sensitive_data.py`): 이미 평문으로 쌓인 행을 해시/암호문으로 바꿉니다. 컬럼 길이를 먼저 확인해 넓히고, 이미 전환된 행은 건너뛰므로 여러 번 실행해도 결과가 같습니다.
+### ⚡ 검색 지원 (Materialized View · 인덱스)
+* 사원·부서·연락처와 현재 진행 중인 참여 수를 미리 집계한 **검색용 Materialized View**와, 이름·부서명 **인덱스**를 제공합니다.
 
-```bash
-# 1) 32바이트 키 생성 후 환경변수로 등록 (키는 저장소에 올리지 않는다)
-python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"
-export RRN_ENCRYPTION_KEY=<생성한 키>
+### 👤 회원가입을 위한 로그인 ID
+* 로그인 ID(`username`, UNIQUE)와 비밀번호 컬럼, 사번 자동 부여용 시퀀스를 두어 회원가입 시 ID 중복 검사와 사번 자동 부여가 가능하게 했습니다.
 
-# 2) 01_ddl_schema.sql, 02_dml_seed_data.sql 적재 후 평문 데이터 전환
-cd src && python migrate_sensitive_data.py
+---
+
+## 🏗 시스템 구성
+웹 애플리케이션은 3계층(브라우저 · Flask · Oracle)으로 구성했고, 이 저장소는 그중 **데이터 계층(Oracle)** 의 설계와 스크립트를 중심으로 합니다.
+
+```mermaid
+flowchart LR
+    Browser["Web Browser<br/>(HTML · CSS · JS)"]
+    subgraph App["Application (Flask · 팀원 구현)"]
+        Views["회원가입 · 직원 검색<br/>(세부정보에 연봉·월급 기록)"]
+    end
+    subgraph Data["Oracle Database (DB 설계 · 담당)"]
+        Tables[("13개 테이블<br/>PK · FK · CHECK")]
+        MV[("Materialized View<br/>(검색용 집계)")]
+        Idx["인덱스 2 · 시퀀스 9"]
+    end
+
+    Browser <--> Views
+    Views -- "SQL (cx_Oracle)" --> Tables
+    Views -- "검색 목록 조회" --> MV
+    MV -. "집계 원본" .-> Tables
 ```
 
-<br>
-
-## 5. Directory Structure (DB & Docs 중심)
-```text
-Oracle-EMS-Database-Project
-├── docs/                      # 📂 DB 설계 산출물 (핵심 포트폴리오)
-│   ├── 01_Requirements.xlsx   # 요구사항 정의서
-│   ├── 02_Standardization.xlsx# 표준 용어/도메인/코드 정의서
-│   ├── 03_ERD_Model.pdf       # 논리/물리 데이터 모델링 (ERD)
-│   └── 04_CRUD_Matrix.xlsx    # 기능-엔터티 상관관계 분석
-│
-├── sql/                       # 💾 SQL 스크립트
-│   ├── 01_ddl_schema.sql      # 테이블, 제약조건, 뷰, 인덱스 생성
-│   └── 02_dml_seed_data.sql   # 기초 테스트 데이터 적재 (평문, 적재 후 전환 스크립트 실행)
-│
-└── src/                       # Flask 웹 애플리케이션 (다른 팀원 구현)
-    ├── security.py            # 비밀번호 해시, 주민등록번호 암호화·마스킹 (이후 개선)
-    └── migrate_sensitive_data.py # 기존 평문 데이터 전환 (이후 개선)
+### ERD (13개 테이블)
+```mermaid
+erDiagram
+    department ||--o{ employee : "소속"
+    customer ||--o{ project : "발주"
+    employee ||--o{ participation_project : "참여"
+    project ||--o{ participation_project : "참여"
+    employee ||--o{ contract : "계약"
+    contract ||--o{ salary : "급여"
+    employee ||--o{ salary : "급여"
+    project ||--o{ incentive : "지급"
+    employee ||--o{ incentive : "지급"
+    seminar ||--o{ seminar_participation : "참석"
+    employee ||--o{ seminar_participation : "참석"
+    project ||--o{ peer_evaluation : "평가"
+    employee ||--o{ peer_evaluation : "평가자·피평가자"
+    project ||--o{ pm_evaluation : "평가"
+    employee ||--o{ pm_evaluation : "평가자·피평가자"
+    project ||--o{ customer_evaluation : "평가"
+    customer ||--o{ customer_evaluation : "평가자"
+    employee ||--o{ customer_evaluation : "피평가자"
 ```
 
-<br>
+| 영역 | 테이블 | 설명 |
+| :--- | :--- | :--- |
+| 조직 | `department`, `employee` | 부서 7종(CHECK), 직원(로그인 ID·학력·스킬셋 포함) |
+| 프로젝트 | `customer`, `project`, `participation_project` | 발주처, 프로젝트(시작·종료일), **참여 이력(시작·종료일·직무)** |
+| 계약·급여 | `contract`, `salary`, `incentive` | 계약(연봉), 월별 급여(기본급·월급), 프로젝트별 인센티브 |
+| 평가 | `peer_evaluation`, `pm_evaluation`, `customer_evaluation` | 동료·PM·고객 평가 (평가 항목: 업무 수행 / 커뮤니케이션) |
+| 교육 | `seminar`, `seminar_participation` | 세미나와 직원별 참석 |
 
-## 6. Retrospective & Limitations (회고 및 한계점)
-본 프로젝트를 통해 DB 설계 및 쿼리 작성의 기초를 다졌으나, 실무적인 관점에서 다음과 같은 구조적 한계점과 개선 방향을 명확히 인지하게 되었습니다.
+---
 
-* **MView 동기화(Refresh) 전략 누락:** 통계 쿼리 성능 개선을 위해 구체화 뷰(MView)를 생성했으나, 데이터 동기화 옵션을 명시하지 않아 원본 데이터 갱신 시 정합성이 어긋나는 구조적 결함이 있습니다. 실무 환경에서는 `DBMS_SCHEDULER`를 이용한 야간 배치(`COMPLETE REFRESH`)나 구체화 뷰 로그(MView Log)를 활용한 `FAST REFRESH ON DEMAND` 전략이 반드시 수반되어야 함을 배웠습니다.
-* **민감 정보 평문 저장 → 이후 개선:** 기능 구현에 집중하여 주민등록번호와 비밀번호를 평문으로 저장했습니다. 이후 비밀번호는 해시로, 주민등록번호는 AES-256-GCM 암호문으로 저장하도록 고쳤습니다(4.E). 남은 과제도 있습니다. 키 교체(rotation) 절차가 없고, 키를 환경변수로만 관리해 실무라면 KMS 같은 별도 키 관리 체계가 필요합니다. 또 개인정보보호법 제24조의2는 법령 근거 없는 주민등록번호 처리를 금지하므로, 암호화 이전에 이 컬럼을 수집해야 하는지부터 요구사항 단계에서 따졌어야 했습니다.
-* **B-Tree 인덱스 스캔의 한계 인지:** 검색 성능을 위해 B-Tree 인덱스를 생성했으나, 동적 검색 환경에서 `LIKE '%검색어%'` 형태의 양방향 와일드카드 검색을 수행할 경우 옵티마이저가 인덱스를 타지 못하고 Full Table Scan을 유발한다는 한계를 프로젝트 이후 학습을 통해 인지했습니다. 검색 패턴에 맞는 인덱스 설계가 중요하다는 점을 배웠습니다.
-* **참여 이력 PK의 한계:** `PARTICIPATION_PROJECT`의 PK가 (사원, 프로젝트)라서, 같은 직원이 같은 프로젝트에서 빠졌다가 다시 투입되면 이력이 한 행으로만 남습니다. 재투입까지 추적하려면 시작일을 PK에 포함하거나 별도 대리키를 두어야 합니다.
-* **논리적 모델링(슈퍼/서브타입)의 부재:** `peer_evaluation`, `pm_evaluation`, `customer_evaluation` 등 컬럼 구조가 거의 동일한 테이블을 평가자 종류별로 물리적으로 분리하여 스키마를 구성했습니다. 프로젝트 당시 팀 보고서에는 평가 정보를 한 테이블에 합치는 안(조인 불필요, 중복 우려)과 슈퍼/서브타입 안(유지보수 용이, 조인 성능 우려)을 비교한 기록이 있습니다. 지금 시점에서는 시스템 확장성 및 쿼리 중복을 고려할 때, 이를 단일 평가(Evaluation) 엔터티로 통합하고 '평가자 타입' 컬럼으로 분류하는 슈퍼/서브타입 모델링이 더 효율적이라고 판단합니다.
+## 🧱 데이터 모델 Deep Dive
+
+### **정규화와 반정규화**
+**3정규형을 기준으로 설계를 시작했고, 결과적으로는 부분 정규화입니다.** 테이블 수는 **설계 단계 ERD 14개 엔터티 → 구축 초기 DDL 16개 테이블 → 최종 13개 테이블**로 바뀌었습니다. 설계 단계에서는 경험 기술(`경험기술`)을 별도 엔터티로 두었고, 구축 초기 DDL에서는 평가 항목도 별도 테이블(`*_type`)이었습니다. 구축 과정에서 조회와 구현을 단순하게 하려고 일부를 반정규화했고, 최종 13개 테이블 중 **11개는 3정규형을 충족하며 `employee`와 `salary` 두 곳이 예외**입니다. 반정규화가 적용된 곳은 다음과 같습니다.
+
+| 테이블 | 반정규화 내용 | 이유 | 정규형 영향 |
+| :--- | :--- | :--- | :--- |
+| `salary` | 기본급(`base_salary`)·월급(`monthly_salary`)을 계산 가능한 값이지만 저장 | 급여 **지급 내역의 증빙 자료**로 쓰기 위해, 지급 시점의 값을 그대로 보존 | 3정규형 위반 (계약연봉/12로 유도 가능한 값) |
+| `salary` | `employee_id`를 중복 저장 (계약을 통해서도 알 수 있음) | 직원 기준 급여 조회를 계약 테이블을 거치지 않고 직원과 바로 조인하기 위함 | 3정규형 위반 (`salary_id → contract_id → employee_id`) |
+| `employee` | 기술 목록(`skill_set`)을 쉼표로 이은 문자열 한 컬럼에 저장 | 보유 기술은 한 컬럼에 문자열로 이어 두면, 기술이 늘어날 때 그 칸에 덧붙여 저장하면 되어 관리가 단순함 | 1정규형 위반 (한 칸에 여러 값) |
+| `peer_` / `pm_` / `customer_evaluation` | 평가 항목(`*_type`) 테이블을 본 테이블에 **병합** (`evaluation_type`, `evaluation_content`) | 평가를 항목 테이블로 나누면 조회할 때마다 조인이 필요함. 합쳐서 조인 없이 한 번에 조회하도록 단순화 | 정규형은 유지 (항목별 평점을 줄 수 있음). 대신 같은 (프로젝트, 평가자, 피평가자)에 항목별 2행이 생겨 키 컬럼이 반복됨 |
+
+### **시점별 참여 이력 설계**
+
+**Challenge**
+요구사항 정의서에 "참여 인원은 언제든 바뀔 수 있다", "특정 시점에 어떤 직원이 어떤 프로젝트, 어떤 직무에 참여했는지 알 수 있어야 한다"가 있었습니다. 직원 테이블에 현재 값만 두면 변동 이전 기록이 남지 않아 특정 시점의 참여 현황을 조회할 수 없습니다.
+
+**Solution**
+프로젝트 참여 이력을 `participation_project` 테이블로 분리하고 **시작일·종료일·직무(role)** 를 기록했습니다. 참여가 끝나도 행을 삭제하지 않고 종료일을 채우는 방식으로 설계했고(CRUD 매트릭스에서 참여 종료는 수정 연산), 종료일이 비어 있으면 현재 진행 중인 참여입니다.
+
+* `CHECK (end_date >= start_date)`: 종료일이 시작일보다 앞선 이력은 DB가 거부합니다.
+* `CHECK (role IN ('PM','PL','Analyst','Designer','Programmer','Tester','other'))`: 직무 값을 제한합니다.
+
+**특정 시점 조회 (예시)**
+```sql
+-- 2024-06-30 시점에 참여 중이던 직원·프로젝트·직무
+SELECT e.employee_name, p.project_name, pp.role
+FROM participation_project pp
+JOIN employee e ON e.employee_id = pp.employee_id
+JOIN project  p ON p.project_id  = pp.project_id
+WHERE pp.start_date <= DATE '2024-06-30'
+  AND (pp.end_date IS NULL OR pp.end_date >= DATE '2024-06-30');
+```
+시드 데이터에 같은 조건을 적용하면 2024-06-30 기준 참여 중인 이력은 14건(9개 프로젝트)입니다.
+
+### **검색용 집계: Materialized View**
+직원 검색 목록이 매번 `employee` · `department` · `participation_project` 세 테이블을 조인하고 집계하지 않도록, 결과를 `employee_search_mv`로 미리 만들어 두었습니다. **검색 목록용 집계**입니다. 집계하는 값은 현재 진행 중인 참여 수 통계(`COUNT`) 한 가지이고, 직원 검색 목록 화면에 표시하는 대시보드(직원 검색 목록의 집계 컬럼) 용도입니다. 별도의 통계·대시보드 화면은 없습니다.
+
+| 컬럼 | 설명 |
+| :--- | :--- |
+| `employee_id`, `username`, `employee_name` | 직원 식별·이름 |
+| `department_name` | 부서명 (`department`와 조인) |
+| `employee_phone_number`, `employee_email` | 연락처 |
+| `current_projects` | 현재 진행 중인 참여 수 (`end_date IS NULL`인 참여를 `COUNT`) |
+
+### **인덱스**
+`idx_employee_name`(직원명), `idx_department_name`(부서명) 두 개를 만들었습니다. 현재 동적 검색 SQL은 Materialized View에 `LIKE '%검색어%'`로 조건을 걸기 때문에 이 인덱스를 **실제로 사용하지는 않습니다.** 대신 `employee`와 `department`를 직접 조회하며 이름·부서명을 일치(`=`) 또는 앞부분 일치 조건으로 쓰는 SQL을 작성할 때는 사용할 수 있도록 만들어 두었습니다. (`department`는 7행이라 부서명 인덱스의 효과는 작습니다.)
+
+---
+
+## 🧪 제약과 검증
+
+### 제약 목록
+| 규칙 | 적용 테이블 | 제약 |
+| :--- | :--- | :--- |
+| 종료일 ≥ 시작일 | `project`, `participation_project` | `CHECK (end_date >= start_date)` |
+| 직무 값 제한 | `participation_project` | `CHECK (role IN (...))` |
+| 부서명 값 제한 | `department` | `CHECK (department_name IN (...))` (마케팅·경영관리·연구개발·개발·인사·영업·디자인) |
+| 평가 유형 제한 | 평가 3개 테이블 | `CHECK (evaluation_type IN ('업무 수행평가','커뮤니케이션 수행평가'))` |
+| 점수 범위 | `peer_evaluation` | `CHECK (score BETWEEN 0 AND 10)` |
+| 로그인 ID 중복 방지 | `employee` | `UNIQUE (username)` |
+| 참조 무결성 | 전체 | PK 13개, FK 20개 (참조 중인 행은 삭제 불가) |
+
+### 시드 데이터
+시드 데이터는 팀원이 작성한 생성 스크립트(Faker 기반)의 출력으로, 모두 가상의 값입니다.
+
+| 테이블 | 행 수 | 테이블 | 행 수 |
+| :--- | ---: | :--- | ---: |
+| `employee` | 100 (개발 70 · 그 외 6개 부서 각 5) | `contract` / `salary` | 485 / 4,520 |
+| `customer` | 100 | `peer_evaluation` | 4,528 |
+| `project` | 200 (진행 중 15) | `pm_evaluation` | 944 |
+| `participation_project` | 700 | `customer_evaluation` | 1,300 |
+| `seminar` / `seminar_participation` | 100 / 500 | `incentive` | 1 |
+
+시드 전체를 확인한 결과, 모든 제약을 만족하며 DB가 강제하지 않는 규칙(참여 기간이 프로젝트 기간 안에 있음, 프로젝트마다 PM 1명, 동료평가는 같은 프로젝트 참여자끼리 등)도 지켜집니다.
+
+---
+
+## 🗓 개발 기간과 작업 구분
+
+| 시기 | 내용 |
+| :--- | :--- |
+| **2024 수업 당시 (2024-09 ~ 2024-12)** | 수업 일정에 따라 단계별로 제출했습니다.<br>**분석(10/21)** 요구사항 정의서 · **설계(11/04)** ERD(DA#)와 테이블 정의서 · **구축(11/18)** 표준 용어·도메인·코드 정의서, CRUD 매트릭스, 테이블 생성·시드 적재 스크립트와 증빙 · **최종(12/02)** 최종 보고서와 전체 시스템.<br>구축 단계의 DDL에서 최종 단계로 넘어가며 시퀀스, 로그인 컬럼, Materialized View, 인덱스를 추가하고 평가 항목 테이블을 본 테이블에 병합했으며, DROP/TRUNCATE 스크립트를 작성했습니다. |
+| **2026-09 ~ 2026-10** | 보안 관련 리팩토링. 비밀번호 scrypt 해시, 주민등록번호 AES-256-GCM 암호화(키는 환경변수)와 화면 마스킹, 기존 평문 데이터 전환 스크립트, DB 접속 정보 환경변수화. 암호문을 담기 위해 `registration_number`를 `VARCHAR2(14)`에서 `VARCHAR2(100)`으로 확장<br>테스트를 쉽게 하기 위한 예시 쿼리 파일 추가(`sql/reference/example_queries.sql`) |
+
+---
+
+## 💡 회고 및 한계
+
+참여 이력 PK가 (사원, 프로젝트)라 같은 프로젝트에 다시 투입되면 한 행으로만 남는 한계가 있습니다.
+Materialized View 갱신 전략, LIKE '%...%'  검색이 인덱스를 쓰지 못하는 점은 이후 학습으로 알게 됐습니다.
+2026.09 코드를 다시 점검하다 비밀번호·주민등록번호가 평문으로 저장되는 것을 발견해 고쳤습니다. 비밀번호는 scrypt 해시,
+주민등록번호는 AES-256-GCM 암호화(키는 환경변수로 분리)와 화면 마스킹을 적용하고, 기존 평문 데이터를 바꾸는 전환 스크립트를
+작성했습니다.
+
+**그 밖의 한계**
+* 참여 기간이 프로젝트 기간 안에 있어야 한다는 규칙은 DDL 주석에만 있고 제약으로 구현하지 못했습니다.
+* 점수 CHECK는 `peer_evaluation`에만 있고, `pm_evaluation`·`customer_evaluation`에는 없습니다.
+* 로그인·권한 기능은 구현하지 않았습니다. "경영진만 타 직원을 검색한다"는 요구는 시연에서 구두로 설명했습니다.
+
+---
+
+## 🔭 향후 개선
+* **점수 제약 통일:** PM·고객 평가에도 점수 범위 CHECK 적용 (정의서의 "1~10점"과 CHECK 범위 맞춤)
+* **평가 중복 방지:** (프로젝트, 평가자, 피평가자, 평가 유형)에 UNIQUE 제약 추가
+* **참여 기간 제약:** 참여 기간이 프로젝트 기간 안에 있도록 트리거로 구현
+* **기술 목록 분리:** `skill_set`을 직원-기술 분리 테이블로 정규화
+* **급여 테이블 정리:** `salary.employee_id` 중복 제거 또는 복합 FK로 일치 강제
+* **민감정보 저장 개선:** 비밀번호·주민등록번호 평문 저장 → **개선 완료** (2026-09)
+
+---
+
+## 🎥 발표와 결과물
+* **최종 발표:** DB를 직접 열어 데이터와 조회가 가능한지 보여주는 방식으로 시연했습니다.
+* **팀 웹 애플리케이션:** 직원 검색(이름·부서·직급·전화·이메일 중 하나 이상) → 세부정보에서 학력·스킬셋·현재 연봉·당해년도 월급 기록을 확인하고, 회원가입 화면에서 직원 정보를 등록·수정합니다.
+
+---
+
+## 👥 팀 소개 (Team)
+| 역할 | 담당 |
+| :--- | :--- |
+| **팀장 · 데이터베이스 설계 (SQL)** | 데이터 모델링, DDL·제약조건, 이력 관리 설계, Materialized View·인덱스·시퀀스, DROP/TRUNCATE 스크립트 |
+| **웹 애플리케이션 (Flask)** | 회원가입·직원 검색 화면(세부정보에서 연봉·월급 기록 확인)과 DB 연동 |
+| **시드 데이터 생성** | Faker 기반 더미 데이터 생성 스크립트 |
+| **데이터베이스 설계 (공동)** | 데이터 모델링과 테이블 설계를 팀장과 함께 진행 |
+
+---
+
+## ⚙️ 실행 방법
+
+**요구 사항:** Python 3.12, Oracle Database, Oracle Instant Client
+
+1. **Oracle Instant Client:** [Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client/downloads.html)를 내려받아 **프로젝트 최상위 폴더**에 `instantclient_23_6`(macOS는 `instantclient_23_3`) 이름으로 둡니다.
+2. **의존성 설치:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   `cx_Oracle`은 Python 3.12용 미리 빌드된 패키지가 없어 소스에서 빌드하므로, C 컴파일러(Windows는 Visual Studio Build Tools 등)가 필요할 수 있습니다.
+3. **DB 준비:** 스키마 사용자로 접속해 순서대로 실행합니다.
+   ```text
+   sql/01_ddl_schema.sql       -- 테이블, 시퀀스, Materialized View, 인덱스
+   sql/02_dml_seed_data.sql    -- 시드 데이터 (주민번호·비밀번호는 평문)
+   ```
+   Materialized View는 만든 시점의 결과를 저장하고 자동으로 갱신되지 않습니다. 위 순서로 실행하면 테이블이 비어 있을 때 만들어지므로, **시드를 적재한 뒤 한 번 갱신**해야 직원 검색 목록에 데이터가 나옵니다.
+   ```sql
+   EXEC DBMS_MVIEW.REFRESH('EMPLOYEE_SEARCH_MV');
+   ```
+   이전 버전 DDL로 만든 DB라면 `sql/03_drop_schema.sql`로 객체를 모두 지운 뒤 `01`부터 다시 실행하거나, `employee_search_mv`만 `DROP` 하고 새 정의로 다시 만듭니다.
+4. **환경변수:**
+
+   | 환경변수 | 기본값 | 설명 |
+   | :--- | :--- | :--- |
+   | `ORACLE_USER` | 없음 (필수) | DB 계정 |
+   | `ORACLE_PASSWORD` | 없음 (필수) | DB 비밀번호 |
+   | `ORACLE_DSN` | `localhost/XE` | 접속 주소 |
+   | `RRN_ENCRYPTION_KEY` | 없음 (필수) | 주민등록번호 암호화 키 (32바이트를 base64로 인코딩) |
+
+   ```bash
+   # 키 생성
+   python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"
+   export RRN_ENCRYPTION_KEY=<생성한 키>      # Windows PowerShell: $env:RRN_ENCRYPTION_KEY="<생성한 키>"
+   ```
+5. **평문 시드 전환:** 시드 SQL은 평문이므로 적재 **후**에 한 번 실행합니다. 이미 변환된 행은 건너뛰어 여러 번 실행해도 됩니다.
+   ```bash
+   cd src
+   python migrate_sensitive_data.py
+   ```
+6. **앱 실행:**
+   ```bash
+   cd src
+   python app.py
+   ```
+   `http://localhost:5000`에서 확인할 수 있습니다.
+
+### 초기화와 다시 적재
+| 목적 | 순서 |
+| :--- | :--- |
+| **데이터만** 비우고 다시 적재 | `sql/04_truncate_data.sql` → `sql/02_dml_seed_data.sql` → MView 갱신 → `migrate_sensitive_data.py` |
+| **전부 삭제**하고 처음부터 | `sql/03_drop_schema.sql` → `sql/01_ddl_schema.sql` → `sql/02_dml_seed_data.sql` → MView 갱신 → `migrate_sensitive_data.py` |
+
+* `04_truncate_data.sql`은 FK를 잠시 비활성화했다가 다시 활성화하는 방식입니다 (참조되는 테이블은 FK가 활성화된 채로는 `TRUNCATE`할 수 없기 때문). 시퀀스는 되돌리지 않고 Materialized View는 건드리지 않습니다.
+* `03_drop_schema.sql`은 Materialized View, 테이블 13개(자식 → 부모 순), 시퀀스 9개를 삭제합니다. 인덱스는 테이블과 함께 삭제됩니다.
+
+---
+
+## 📖 사용 방법 (Usage)
+1. **직원 검색 (`/search`):** 이름·부서·직급·전화번호·이메일 중 하나 이상을 입력해 검색하고, 세부정보를 눌러 학력·스킬셋·현재 연봉·당해년도 월급 기록을 확인합니다.
+2. **회원가입 (`/templates/sign`):** 로그인 ID 중복을 확인하며 직원 정보를 등록하고, 직원 ID로 정보를 불러와 수정합니다.
