@@ -13,11 +13,7 @@ def create_app():
 
     
     # Register blueprints
-    import main_views
-    import test_views
-    import sign_views
-    import salary_views
-    import search_views
+    from views import main_views, test_views, sign_views, salary_views, search_views
     app.register_blueprint(main_views.main)
     app.register_blueprint(test_views.test)
     app.register_blueprint(sign_views.sign)
